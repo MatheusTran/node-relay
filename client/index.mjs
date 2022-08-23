@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { io } from "socket.io-client";
-var socket = io.connect('http://localhost:9000', {reconnect: true});
+var socket = io.connect('https://node-relay-station.herokuapp.com', {reconnect: true});
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { createSpinner } from "nanospinner";
