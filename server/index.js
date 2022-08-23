@@ -36,7 +36,6 @@ io.on("connection", socket =>{
         var now = new Date().getTime()
         now = getNow(now)
         console.log(`[${now}]@~${room}/${user}: ${message}`)
-        console.log(now)
         socket.to(room).emit('recieve', {room, user, message, now:now})
     })
     socket.on("leave", (room, username)=>{
