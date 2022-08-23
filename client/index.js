@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+
 import { io } from "socket.io-client";
 var socket = io.connect('https://node-relay-station.herokuapp.com', {reconnect: true});
 import chalk from 'chalk';
