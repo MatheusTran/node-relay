@@ -1,0 +1,20 @@
+{
+  "name": "node-relay",
+  "version": "1.0.0",
+  "description": "client side for the node messenger",
+  "main": "index.mjs",
+  "type": "module",
+  "bin": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "author": "Matheus Tran",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "inquirer": "^9.1.0",
+    "nanospinner": "^1.1.0",
+    "serverline": "^1.6.0",
+    "socket.io-client": "^4.5.1"
+  }
+}

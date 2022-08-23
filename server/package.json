@@ -1,0 +1,24 @@
+{
+  "name": "node-relay-station",
+  "version": "1.0.0",
+  "description": "message people using node.js",
+  "main": "index.js",
+  "bin": "./index.js",
+  "scripts": {
+    "dev": "nodemon ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "terminal messenger"
+  },
+  "author": "Matheus Tran",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "http": "^0.0.1-security",
+    "socket.io": "^4.5.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
+  }
+}
