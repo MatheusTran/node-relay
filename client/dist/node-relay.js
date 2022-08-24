@@ -7040,7 +7040,7 @@ const ansiStyles$1 = assembleStyles$1();
 
 /* eslint-env browser */
 
-const isBlinkBasedBrowser = /\b(Chrome|Chromium)\//.test(navigator.userAgent);
+const isBlinkBasedBrowser = typeof navigator !== 'undefined'?/\b(Chrome|Chromium)\//.test(navigator.userAgent):null;
 
 const colorSupport = isBlinkBasedBrowser ? {
 	level: 1,
@@ -13624,6 +13624,7 @@ function messenger(){
             return true
             
         }
+        
         });
     
         myRL__default["default"].on('SIGINT', function(rl) {

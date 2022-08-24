@@ -35,12 +35,6 @@ var nanospinner = require('nanospinner');
 var myRL = require('serverline');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-function setTerminalTitle(title) {
-    process.stdout.write(
-        String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
-    );
-}
-setTerminalTitle("node-relay")
 
 
 function _interopNamespace(e) {
@@ -11582,7 +11576,7 @@ class Prompt {
       if (this.opt.type === 'password') {
         message += chalk.italic.dim('[hidden] ');
       } else {
-        message += chalk.dim('(' + this.opt.default + ') ');
+        message += chalk.dim('\x1b[32m(' + this.opt.default + ')\x1b[0m ');
       }
     }
 
@@ -11816,7 +11810,7 @@ class ListPrompt extends Prompt {
 
     // Render choices or answer depending on the state
     if (this.status === 'answered') {
-      message += chalk.cyan(this.opt.choices.getChoice(this.selected).short);
+      message += `\x1b[36m${this.opt.choices.getChoice(this.selected).short}\x1b[0m`;
     } else {
       const choicesStr = listRender(this.opt.choices, this.selected);
       const indexPosition = this.opt.choices.indexOf(
@@ -11920,9 +11914,9 @@ function listRender(choices, pointer) {
     }
 
     const isSelected = i - separatorOffset === pointer;
-    let line = (isSelected ? figures.pointer + ' ' : '  ') + choice.name;
+    let line = (isSelected ?  figures.pointer + ' ' : '  ') + choice.name;
     if (isSelected) {
-      line = chalk.cyan(line);
+      line = '\x1b[36m'+line+'\x1b[0m';
     }
 
     output += line + ' \n';
@@ -11984,7 +11978,7 @@ class InputPrompt extends Prompt {
     if (transformer) {
       message += transformer(appendContent, this.answers, { isFinal });
     } else {
-      message += isFinal ? chalk.cyan(appendContent) : appendContent;
+      message += isFinal ? chalk.cyan(`\x1b[36m${appendContent}\x1b[0m`) : appendContent;
     }
 
     if (error) {
@@ -13552,6 +13546,13 @@ console.log("node-relay");
 
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
+function setTerminalTitle(title) {
+    process.stdout.write(
+        String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
+    );
+}
+setTerminalTitle("node-relay")
+
 async function getName(){
     const input = await inquirer.prompt({
         name: 'username',
@@ -13661,16 +13662,15 @@ function messenger(){
             case "!goto":
                 newRoom = line.replace("!goto ", "").replace("goto ", "").replace("!join ", "")
                 myRL__default["default"].setPrompt(`\x1b[36m>\x1b[0m pass: \x1b[47m'`)
-                pwd = true
-                //myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: [hidden]")
+                myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: ")
                 return true
             case "!pass":
                 break;
             default:
-                if (pwd){
+                if (myRL__default["default"].isMuted()){
                     myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                     console.log(`\x1b[0mattempting to join ${newRoom}`)
-                    pwd = false
+                    myRL__default["default"].setMuted(false)
                     var pass = line
                     const spinner = nanospinner.createSpinner('\x1b[0mverifying...').start();
                     socket.emit("join", {room:newRoom, pass, username}, (response)=>{
@@ -13679,7 +13679,6 @@ function messenger(){
                                 spinner.error({text:`\x1b[0m\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
                                 console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
                                 myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
-
                                 break;
                             case 200:
                                 setTerminalTitle(room)
