@@ -13541,7 +13541,7 @@ const inquirer = {
   Separator,
 };
 const host = "https://node-relay-station.herokuapp.com"
-//https://node-relay-station.herokuapp.com, localhost:9000
+//https://node-relay-station.herokuapp.com, http://localhost:9000
 var socket = lookup.connect(host, {reconnect: true});
 
 var username = "anonymous";
@@ -13621,9 +13621,9 @@ var pwd = false
 
 function messenger(){
     myRL__default["default"].init(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
-    myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls'])
+    myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
     myRL__default["default"].on('line', function(line) {
-        switch (line.slice(0,5)) {
+        switch (line.slice(0,5)) {            
             case '!help':
                 console.log("Commands are currently an experimnetal feature.")
                 console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
@@ -13659,7 +13659,7 @@ function messenger(){
             case "!join":
             case "goto":
             case "!goto":
-                newRoom = line.replace("!goto ", "")
+                newRoom = line.replace("!goto ", "").replace("goto ", "").replace("!join ", "")
                 myRL__default["default"].setPrompt(`\x1b[36m>\x1b[0m pass: \x1b[47m'`)
                 pwd = true
                 //myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: [hidden]")
@@ -13668,33 +13668,37 @@ function messenger(){
                 break;
             default:
                 if (pwd){
-                    console.log("\x1b[0m")
+                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                    console.log(`\x1b[0mattempting to join ${newRoom}`)
                     pwd = false
                     var pass = line
-                    const spinner = nanospinner.createSpinner('verifying...').start();
+                    const spinner = nanospinner.createSpinner('\x1b[0mverifying...').start();
                     socket.emit("join", {room:newRoom, pass, username}, (response)=>{
                         switch (response){
                             case 100:
-                                spinner.error({text:`\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
+                                spinner.error({text:`\x1b[0m\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+
                                 break;
                             case 200:
                                 setTerminalTitle(room)
-                                spinner.success({text:`\x1b[33msuccessfully joined ${newRoom}\x1b[0m`});
+                                spinner.success({text:`\x1b[0m\x1b[33msuccessfully joined ${newRoom}\x1b[0m`});
                                 console.log('type !help for a list of commands')
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                                 break;
                             case 404:
-                                spinner.error({text:`\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
+                                spinner.error({text:`\x1b[0m\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                                 break;
                         }
                     });
-                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                     break;
                 }
                 socket.emit("message", room, username, line);
