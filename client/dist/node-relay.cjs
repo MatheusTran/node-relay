@@ -13595,7 +13595,6 @@ async function menu(){
             const spinner = nanospinner.createSpinner('verifying...').start();
             await sleep();
             socket.emit("join", {room, pass, username}, (response)=>{
-                
                 switch (response){
                     case 100:
                         spinner.error({text:`\x1b[31mincorrect password for room "${room}"\x1b[0m`});
@@ -13617,6 +13616,8 @@ async function menu(){
     }
 }
 
+var newRoom = ""
+
 function messenger(){
     myRL__default["default"].init(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
     myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls'])
@@ -13625,13 +13626,14 @@ function messenger(){
             case '!help':
                 console.log("Commands are currently an experimnetal feature.")
                 console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
-                    !help: To get this message. 
-                    !name: to set a new name for yourself. Syntax: name %setName%
-                    !goto: go to different room. Syntax: goto %room%.
-                    !exit: exits out of node-relay. You can also do ctr + c
-                    !list: lists all users in the room.
-                    !tell: privately sends a message.
-                    cls: clears entire screens
+    !help: To get this message. 
+    !name: to set a new name for yourself. Syntax: name %setName%
+    !goto (alias: goto, !join): go to different room. Syntax: goto %room%.
+    !exit: exits out of node-relay. You can also do ctr + c
+    !list: lists all users in the room.
+    !tell: privately sends a message.
+    !pass: sets a new password for the room. only available to room admins
+    !cls(alias: cls): clears entire screens
                     \x1b[0m`);
                 break;
             case '!name':
@@ -13652,7 +13654,43 @@ function messenger(){
                         console.log(`\x1b[36m${index}:\x1b[0m ${users}`)
                     })
                 })
+                break;
+            case "!join":
+            case "goto":
+            case "!goto":
+                newRoom = line.replace("!goto ", "")
+                myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: [hidden]")
+                return true
+            case "!pass":
+                break;
             default:
+                if (myRL__default["default"].isMuted()){
+                    myRL__default["default"].setMuted(false)
+                    var pass = line
+                    const spinner = nanospinner.createSpinner('verifying...').start();
+                    socket.emit("join", {room:newRoom, pass, username}, (response)=>{
+                        switch (response){
+                            case 100:
+                                spinner.error({text:`\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
+                                break;
+                            case 200:
+                                setTerminalTitle(room)
+                                spinner.success({text:`\x1b[33msuccessfully joined ${newRoom}\x1b[0m`});
+                                console.log('type !help for a list of commands')
+                                socket.emit("leave", room, username)
+                                room = newRoom
+                                break;
+                            case 404:
+                                spinner.error({text:`\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
+                                socket.emit("leave", room, username)
+                                room = newRoom
+                                break;
+                        }
+                    });
+                    console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
+                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                    break;
+                }
                 socket.emit("message", room, username, line);
                 break;
         }

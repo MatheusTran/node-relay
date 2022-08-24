@@ -35,7 +35,7 @@ io.on("connection", socket =>{
     })
     socket.on("set-name", (room, user, setUser)=>{
         socket.user.username = setUser
-        rooms[room]["users"][rooms[room]["users"].indexOf(user,1)] = setUser
+        rooms[room]["users"][rooms[room]["users"].indexOf(user)] = setUser
         socket.to(room).emit("changed", user, setUser)
     })
     socket.on("list", (room, callback)=>{
@@ -50,15 +50,14 @@ io.on("connection", socket =>{
     socket.on("leave", (room, username)=>{
         console.log(`${username} left ${room}`)
         socket.to(room).emit("leave", username)
-        rooms[room]["users"].splice(rooms[room]["users"].indexOf(username,1))
+        rooms[room]["users"].splice(rooms[room]["users"].indexOf(username),1)
         socket.leave(room)
-        socket.user.room = ""
     })
     socket.on("disconnect", ()=>{
         console.log(`${socket?.user?.username} left`)
         if (socket?.user?.room){
             const room = socket.user.room
-            rooms[room]["users"].splice(rooms[room]["users"].indexOf(username,1))
+            rooms[room]["users"].splice(rooms[room]["users"].indexOf(socket.user.username),1)
             socket.to(room).emit("leave", socket.user.username)
         }
         //socket.to(socketToRoom[socket]).emit("leave", socket)
