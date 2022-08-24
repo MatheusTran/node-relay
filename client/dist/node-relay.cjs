@@ -13540,7 +13540,7 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-const host = "http://localhost:9000"
+const host = "https://node-relay-station.herokuapp.com"
 //https://node-relay-station.herokuapp.com, localhost:9000
 var socket = lookup.connect(host, {reconnect: true});
 
@@ -13617,6 +13617,7 @@ async function menu(){
 }
 
 var newRoom = ""
+var pwd = false
 
 function messenger(){
     myRL__default["default"].init(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
@@ -13633,7 +13634,7 @@ function messenger(){
     !list: lists all users in the room.
     !tell: privately sends a message.
     !pass: sets a new password for the room. only available to room admins
-    !cls(alias: cls): clears entire screens
+    !cls (alias: cls): clears entire screens
                     \x1b[0m`);
                 break;
             case '!name':
@@ -13659,19 +13660,23 @@ function messenger(){
             case "goto":
             case "!goto":
                 newRoom = line.replace("!goto ", "")
-                myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: [hidden]")
+                myRL__default["default"].setPrompt(`\x1b[36m>\x1b[0m pass: \x1b[47m'`)
+                pwd = true
+                //myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: [hidden]")
                 return true
             case "!pass":
                 break;
             default:
-                if (myRL__default["default"].isMuted()){
-                    myRL__default["default"].setMuted(false)
+                if (pwd){
+                    console.log("\x1b[0m")
+                    pwd = false
                     var pass = line
                     const spinner = nanospinner.createSpinner('verifying...').start();
                     socket.emit("join", {room:newRoom, pass, username}, (response)=>{
                         switch (response){
                             case 100:
                                 spinner.error({text:`\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
                                 break;
                             case 200:
                                 setTerminalTitle(room)
@@ -13679,15 +13684,16 @@ function messenger(){
                                 console.log('type !help for a list of commands')
                                 socket.emit("leave", room, username)
                                 room = newRoom
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
                                 break;
                             case 404:
                                 spinner.error({text:`\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
                                 socket.emit("leave", room, username)
                                 room = newRoom
+                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
                                 break;
                         }
                     });
-                    console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m`)
                     myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                     break;
                 }
@@ -13704,19 +13710,19 @@ function messenger(){
 const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
 
 socket.on("recieve", ({room, user, message, now})=>{
-    console.log(`@~/${room}/${user}#: ${message}`);
+    console.log(`\x1b[0m@~/${room}/${user}#: ${message}`);
 });
 
 socket.on("changed", (user, newUser)=>{
-    console.log(`\x1b[33muser ${user} changed their name to ${newUser}\x1b[0m`)
+    console.log(`\x1b[0m\x1b[33muser ${user} changed their name to ${newUser}\x1b[0m`)
 })
 
 socket.on("new", (username)=>{
-    console.log((`\x1b[33mnew client connected. Welcome ${username}\x1b[0m`));
+    console.log((`\x1b[0m\x1b[33mnew client connected. Welcome ${username}\x1b[0m`));
 });
 
 socket.on("leave", (user)=>{
-    console.log(`\x1b[31m${user} has left the room\x1b[0m`);
+    console.log(`\x1b[0m\x1b[31m${user} has left the room\x1b[0m`);
 });
 
 socket.on('connect', () => {
