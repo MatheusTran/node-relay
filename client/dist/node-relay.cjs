@@ -13661,14 +13661,12 @@ function messenger(){
             case "goto":
             case "!goto":
                 newRoom = line.replace("!goto ", "").replace("goto ", "").replace("!join ", "")
-                myRL__default["default"].setPrompt(`\x1b[36m>\x1b[0m pass: \x1b[47m'`)
                 myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: ")
                 return true
             case "!pass":
                 break;
             default:
                 if (myRL__default["default"].isMuted()){
-                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                     console.log(`\x1b[0mattempting to join ${newRoom}`)
                     myRL__default["default"].setMuted(false)
                     var pass = line
@@ -13677,7 +13675,6 @@ function messenger(){
                         switch (response){
                             case 100:
                                 spinner.error({text:`\x1b[0m\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
                                 myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                                 break;
                             case 200:
@@ -13686,14 +13683,12 @@ function messenger(){
                                 console.log('type !help for a list of commands')
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
                                 myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                                 break;
                             case 404:
                                 spinner.error({text:`\x1b[0m\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                console.log(`\x1b[32m@~/${room}/${username}#: \x1b[0m\r`)
                                 myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
                                 break;
                         }
