@@ -13540,7 +13540,7 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-const host = "https://node-relay-station.herokuapp.com"
+const host = "http://localhost:9000"
 //https://node-relay-station.herokuapp.com, localhost:9000
 var socket = lookup.connect(host, {reconnect: true});
 
@@ -13575,7 +13575,6 @@ async function menu(){
             "change username",
             "exit program",
         ]
-    
     });
     switch (input.menu){
         case "exit program":
@@ -13604,11 +13603,12 @@ async function menu(){
                         break;
                     case 200:
                         setTerminalTitle(room)
-                        spinner.success({text:chalk.yellow(`\x1b[33msuccessfully joined ${room}\x1b[0m`)});
+                        spinner.success({text:`\x1b[33msuccessfully joined ${room}\x1b[0m`});
+                        console.log('type !help for a list of commands')
                         messenger();
                         break;
                     case 404:
-                        spinner.error({text:chalk.red(`\x1b[31mCould not find room ${room}. Created a new room instead\x1b[0m`)});
+                        spinner.error({text:`\x1b[31mCould not find room ${room}. Created a new room instead\x1b[0m`});
                         messenger();
                         break;
                 }
@@ -13618,14 +13618,43 @@ async function menu(){
 }
 
 function messenger(){
-    myRL__default["default"].init(`\x1b[2m\x1b[32m@~/${room}/${username}#: \x1b[0m`);
-    //myRL.setCompletion(['help', 'command1', 'command2', 'login', 'check', 'ping'])
+    myRL__default["default"].init(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+    myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls'])
     myRL__default["default"].on('line', function(line) {
-        socket.emit("message", room, username, line);
-        switch (line) {
-            case 'help':
-            console.log('help: To get this message.');
-            break
+        switch (line.slice(0,5)) {
+            case '!help':
+                console.log("Commands are currently an experimnetal feature.")
+                console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
+                    !help: To get this message. 
+                    !name: to set a new name for yourself. Syntax: name %setName%
+                    !goto: go to different room. Syntax: goto %room%.
+                    !exit: exits out of node-relay. You can also do ctr + c
+                    !list: lists all users in the room.
+                    !tell: privately sends a message.
+                    cls: clears entire screens
+                    \x1b[0m`);
+                break;
+            case '!name':
+                socket.emit("set-name", room, username, line.replace("!name ", ""))
+                username = line.replace("!name ", "")//note to self: need to send this to the server side.
+                console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)//also broadcast to everyone that user has changed their name
+                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                break;
+            case '!exit':
+                process.exit(1)
+            case '!cls':
+            case 'cls':
+                process.stdout.write('\x1Bc')
+                break;
+            case "!list":
+                socket.emit("list", room, (list)=>{
+                    list.forEach((users, index)=>{
+                        console.log(`\x1b[36m${index}:\x1b[0m ${users}`)
+                    })
+                })
+            default:
+                socket.emit("message", room, username, line);
+                break;
         }
         });
     
@@ -13639,6 +13668,10 @@ const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
 socket.on("recieve", ({room, user, message, now})=>{
     console.log(`@~/${room}/${user}#: ${message}`);
 });
+
+socket.on("changed", (user, newUser)=>{
+    console.log(`\x1b[33muser ${user} changed their name to ${newUser}\x1b[0m`)
+})
 
 socket.on("new", (username)=>{
     console.log((`\x1b[33mnew client connected. Welcome ${username}\x1b[0m`));

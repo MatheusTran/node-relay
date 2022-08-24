@@ -5,7 +5,7 @@ const io = require("socket.io")(server)
 
 socketToRoom = {}
 
-var rooms = {"tbf":{password:"scaevitas"}, "room2":{password:""}, "general":{password:""}}
+var rooms = {"tbf":{password:"scaevitas", users:[]}, "room2":{password:"", users:[]}, "general":{password:"", users:[]}}
 
 function getNow(time){
     var hours = Math.floor((time % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -21,6 +21,7 @@ io.on("connection", socket =>{
         if (rooms[room]){
             if (pass === rooms[room]["password"]){
                 socket.join(room)
+                rooms[room]["users"].push(username)
                 socket.to(room).emit('new', username)
                 callback(200)
             } else {
@@ -32,6 +33,14 @@ io.on("connection", socket =>{
             callback(404)
         }
     })
+    socket.on("set-name", (room, user, setUser)=>{
+        socket.user.username = setUser
+        rooms[room]["users"][rooms[room]["users"].indexOf(user,1)] = setUser
+        socket.to(room).emit("changed", user, setUser)
+    })
+    socket.on("list", (room, callback)=>{
+        callback(rooms[room]["users"])
+    })
     socket.on("message", (room, user, message)=>{
         var now = new Date().getTime()
         now = getNow(now)
@@ -41,13 +50,16 @@ io.on("connection", socket =>{
     socket.on("leave", (room, username)=>{
         console.log(`${username} left ${room}`)
         socket.to(room).emit("leave", username)
+        rooms[room]["users"].splice(rooms[room]["users"].indexOf(username,1))
         socket.leave(room)
         socket.user.room = ""
     })
     socket.on("disconnect", ()=>{
         console.log(`${socket?.user?.username} left`)
         if (socket?.user?.room){
-            socket.to(socket.user.room).emit("leave", socket.user.username)
+            const room = socket.user.room
+            rooms[room]["users"].splice(rooms[room]["users"].indexOf(username,1))
+            socket.to(room).emit("leave", socket.user.username)
         }
         //socket.to(socketToRoom[socket]).emit("leave", socket)
     })
