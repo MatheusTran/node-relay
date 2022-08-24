@@ -13540,21 +13540,22 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-
-var socket = lookup.connect('https://node-relay-station.herokuapp.com', {reconnect: true});
+const host = "https://node-relay-station.herokuapp.com"
+//https://node-relay-station.herokuapp.com, localhost:9000
+var socket = lookup.connect(host, {reconnect: true});
 
 var username = "anonymous";
 
 var room = "";
 
-console.log("welcome to messenger");
+console.log("node-relay");
 
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
 async function getName(){
     const input = await inquirer.prompt({
         name: 'username',
-        prefix:chalk.green(">"),
+        prefix:"\x1b[36m>\x1b[0m",
         type: 'input',
         message: 'display name as:',
         default(){
@@ -13585,12 +13586,12 @@ async function menu(){
             await menu();
             break;
         case "join room":
-            var ui = await inquirer.prompt({name:"room", prefix:chalk.green(">"), type:"input", message:"room:"});
+            var ui = await inquirer.prompt({name:"room", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"room:"});
             room = ui.room;
             if (!room){
                 room = "general";
             }
-            var pass = await inquirer.prompt({name:"pass", prefix:chalk.green(">"), type:"password", mask:"*", message:"pass:"});
+            var pass = await inquirer.prompt({name:"pass", prefix:"\x1b[36m>\x1b[0m", type:"password", mask:"*", message:"pass:"});
             pass = pass.pass;
             const spinner = nanospinner.createSpinner('verifying...').start();
             await sleep();
@@ -13598,15 +13599,16 @@ async function menu(){
                 
                 switch (response){
                     case 100:
-                        spinner.error({text:chalk.red(`incorrect password for room "${room}"`)});
+                        spinner.error({text:`\x1b[31mincorrect password for room "${room}"\x1b[0m`});
                         menu();
                         break;
                     case 200:
-                        spinner.success({text:chalk.yellow(`successfully joined ${room}`)});
+                        setTerminalTitle(room)
+                        spinner.success({text:chalk.yellow(`\x1b[33msuccessfully joined ${room}\x1b[0m`)});
                         messenger();
                         break;
                     case 404:
-                        spinner.error({text:chalk.red(`could not find room ${room}. Created a new room instead`)});
+                        spinner.error({text:chalk.red(`\x1b[31mCould not find room ${room}. Created a new room instead\x1b[0m`)});
                         messenger();
                         break;
                 }
@@ -13616,7 +13618,7 @@ async function menu(){
 }
 
 function messenger(){
-    myRL__default["default"].init(chalk.greenBright(`@~/${room}/${username}#: `));
+    myRL__default["default"].init(`\x1b[2m\x1b[32m@~/${room}/${username}#: \x1b[0m`);
     //myRL.setCompletion(['help', 'command1', 'command2', 'login', 'check', 'ping'])
     myRL__default["default"].on('line', function(line) {
         socket.emit("message", room, username, line);
@@ -13624,11 +13626,6 @@ function messenger(){
             case 'help':
             console.log('help: To get this message.');
             break
-            case 'pwd':
-            console.log('toggle muted', !myRL__default["default"].isMuted());
-            myRL__default["default"].setMuted(!myRL__default["default"].isMuted(), '> [hidden]');
-            return true
-            
         }
         });
     
@@ -13637,24 +13634,23 @@ function messenger(){
         });    
 }
 
-const load = nanospinner.createSpinner('connecting...').start();
+const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
 
 socket.on("recieve", ({room, user, message, now})=>{
     console.log(`@~/${room}/${user}#: ${message}`);
 });
 
 socket.on("new", (username)=>{
-    console.log(chalk.yellow(`new client connected. Welcome ${username}`));
+    console.log((`\x1b[33mnew client connected. Welcome ${username}\x1b[0m`));
 });
 
 socket.on("leave", (user)=>{
-    console.log(chalk.red(`${user} has left the room`));
+    console.log(`\x1b[31m${user} has left the room\x1b[0m`);
 });
 
 socket.on('connect', () => {
     sleep(1000);
-    load.success({text:chalk.green('secure connection to server established')});
-    console.log(socket.id);
+    load.success({text:'\x1b[33msecure connection to server established\x1b[0m'});
     (async ()=>{
         await getName();
         console.log(`welcome ${username}`);
