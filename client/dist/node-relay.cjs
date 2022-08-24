@@ -13725,7 +13725,7 @@ socket.on("leave", (user)=>{
 
 socket.on('connect', () => {
     sleep(1000);
-    load.success({text:'\x1b[33msecure connection to server established\x1b[0m'});
+    load.success({text:`\x1b[33msecure connection to server ${host} established\x1b[0m`});
     (async ()=>{
         await getName();
         console.log(`welcome ${username}`);

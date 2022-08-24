@@ -28,7 +28,7 @@ io.on("connection", socket =>{
                 callback(100)
             }
         } else {
-            rooms[room] = {password:pass}
+            rooms[room] = {password:pass, users:[]}
             socket.join(room)
             callback(404)
         }
