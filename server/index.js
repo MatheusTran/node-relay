@@ -5,7 +5,7 @@ const io = require("socket.io")(server)
 
 socketToRoom = {}
 
-var rooms = {"tbf":{password:"scaevitas", users:[]}, "room2":{password:"", users:[]}, "general":{password:"", users:[]}}
+var rooms = {"tbf":{password:"scaevitas", users:[], id:[]}, "room2":{password:"", users:[], id:[]}, "general":{password:"", users:[], id:[]}}
 
 function getNow(time){
     var hours = Math.floor((time % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -21,22 +21,33 @@ io.on("connection", socket =>{
         if (rooms[room]){
             if (pass === rooms[room]["password"]){
                 socket.join(room)
+                socket.join(socket.id)
+                if (rooms[room]["users"].filter(e=>e==username).length){
+                    username = username+ `#${rooms[room]["users"].filter(e=>e==username).length}`
+                } 
+                rooms[room]["id"].push(socket.id)
                 rooms[room]["users"].push(username)
                 socket.to(room).emit('new', username)
-                callback(200)
+                callback(200, username)
             } else {
                 callback(100)
             }
         } else {
-            rooms[room] = {password:pass, users:[]}
+            rooms[room] = {password:pass, users:[], id:[]}
             socket.join(room)
             callback(404)
         }
     })
-    socket.on("set-name", (room, user, setUser)=>{
+    socket.on("set-name", (room, user, setUser)=>{ //note to self, need to add a callback to this
         socket.user.username = setUser
         rooms[room]["users"][rooms[room]["users"].indexOf(user)] = setUser
         socket.to(room).emit("changed", user, setUser)
+    })
+    socket.on("dm", ({username, room, user, msg})=>{
+        var now = new Date().getTime()
+        now = getNow(now)
+        room = rooms[room]["id"][rooms[room]["users"].indexOf(user)]
+        socket.to(room).emit("recieve", {room:"\x1b[35mprivate\x1b[0m", user:username, message:`${msg}`, now:now})
     })
     socket.on("list", (room, callback)=>{
         callback(rooms[room]["users"])
@@ -51,6 +62,7 @@ io.on("connection", socket =>{
         console.log(`${username} left ${room}`)
         socket.to(room).emit("leave", username)
         rooms[room]["users"].splice(rooms[room]["users"].indexOf(username),1)
+        rooms[room]["id"].splice(rooms[room]["id"].indexOf(socket.id),1)
         socket.leave(room)
     })
     socket.on("disconnect", ()=>{
@@ -58,6 +70,7 @@ io.on("connection", socket =>{
         if (socket?.user?.room){
             const room = socket.user.room
             rooms[room]["users"].splice(rooms[room]["users"].indexOf(socket.user.username),1)
+            rooms[room]["id"].splice(rooms[room]["id"].indexOf(socket.id),1)
             socket.to(room).emit("leave", socket.user.username)
         }
         //socket.to(socketToRoom[socket]).emit("leave", socket)

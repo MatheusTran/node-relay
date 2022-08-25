@@ -4,7 +4,7 @@ module.exports = {
   name: "node-relay",
   description: "secure TCP connection to communicate in terminal",
   company: "magi-tech",
-  version: "1.7.8",
+  version: "2.2.6",
   copyright: "copyrighted",
   pkg: {
     targets: ["node16-win-x64"],

@@ -13595,7 +13595,7 @@ async function menu(){
             pass = pass.pass;
             const spinner = nanospinner.createSpinner('verifying...').start();
             await sleep();
-            socket.emit("join", {room, pass, username}, (response)=>{
+            socket.emit("join", {room, pass, username}, (response, name)=>{
                 switch (response){
                     case 100:
                         spinner.error({text:`\x1b[31mincorrect password for room "${room}"\x1b[0m`});
@@ -13605,6 +13605,7 @@ async function menu(){
                         setTerminalTitle(room)
                         spinner.success({text:`\x1b[33msuccessfully joined ${room}\x1b[0m`});
                         console.log('type !help for a list of commands')
+                        username = name
                         messenger();
                         break;
                     case 404:
@@ -13621,49 +13622,53 @@ var newRoom = ""
 var pwd = false
 
 function messenger(){
-    myRL__default["default"].init(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+    myRL__default["default"].init(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
     myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
     myRL__default["default"].on('line', function(line) {
-        switch (line.slice(0,5)) {            
-            case '!help':
+        var command = line.split("!")
+        command.splice(0,1)
+        switch (command[0]?.replace(" ", "")) {            
+            case 'help':
                 console.log("Commands are currently an experimnetal feature.")
                 console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
     !help: To get this message. 
-    !name: to set a new name for yourself. Syntax: name %setName%
-    !goto (alias: goto, !join): go to different room. Syntax: goto %room%.
+    !name: to set a new name for yourself. Syntax: name !%setName%
+    !goto (alias: goto, !join): go to different room. Syntax: goto !%room%.
     !exit: exits out of node-relay. You can also do ctr + c
     !list: lists all users in the room.
-    !tell: privately sends a message.
+    !tell: privately sends a message. syntax !tell !name %name% !msg %msg%
     !pass: sets a new password for the room. only available to room admins
     !cls (alias: cls): clears entire screens
                     \x1b[0m`);
                 break;
-            case '!name':
-                socket.emit("set-name", room, username, line.replace("!name ", ""))
-                username = line.replace("!name ", "")//note to self: need to send this to the server side.
-                console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)//also broadcast to everyone that user has changed their name
-                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+            case 'name':
+                socket.emit("set-name", room, username, command[1])
+                username = command[1]
+                console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
+                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
                 break;
-            case '!exit':
+            case 'tell':
+                console.log(`send ${command[1]} message: ${command[2]}`)
+                socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:command[2]})
+                break;
+            case 'exit':
                 process.exit(1)
-            case '!cls':
             case 'cls':
                 process.stdout.write('\x1Bc')
                 break;
-            case "!list":
+            case "list":
                 socket.emit("list", room, (list)=>{
                     list.forEach((users, index)=>{
                         console.log(`\x1b[36m${index}:\x1b[0m ${users}`)
                     })
                 })
                 break;
-            case "!join":
+            case "join":
             case "goto":
-            case "!goto":
-                newRoom = line.replace("!goto ", "").replace("goto ", "").replace("!join ", "")
+                newRoom = command[1]
                 myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: ")
                 return true
-            case "!pass":
+            case "pass":
                 break;
             default:
                 if (myRL__default["default"].isMuted()){
@@ -13675,7 +13680,7 @@ function messenger(){
                         switch (response){
                             case 100:
                                 spinner.error({text:`\x1b[0m\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
                                 break;
                             case 200:
                                 setTerminalTitle(room)
@@ -13683,13 +13688,13 @@ function messenger(){
                                 console.log('type !help for a list of commands')
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
                                 break;
                             case 404:
                                 spinner.error({text:`\x1b[0m\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
                                 socket.emit("leave", room, username)
                                 room = newRoom
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}#: \x1b[0m`);
+                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
                                 break;
                         }
                     });
@@ -13708,7 +13713,7 @@ function messenger(){
 const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
 
 socket.on("recieve", ({room, user, message, now})=>{
-    console.log(`\x1b[0m@~/${room}/${user}#: ${message}`);
+    console.log(`\x1b[0m@~/${room}/${user}: ${message}`);
 });
 
 socket.on("changed", (user, newUser)=>{
@@ -13729,6 +13734,7 @@ socket.on('connect', () => {
     (async ()=>{
         await getName();
         console.log(`welcome ${username}`);
+        console.log(`socket id: \x1b[35m${socket.id}\x1b[0m`)
         await menu();
     })();
 });
