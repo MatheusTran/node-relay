@@ -13534,7 +13534,7 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-const host = "http://localhost:9000"
+const host = "https://node-relay-station.herokuapp.com"
 //https://node-relay-station.herokuapp.com, http://localhost:9000
 var socket = lookup.connect(host, {reconnect: true});
 
