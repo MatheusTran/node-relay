@@ -29,25 +29,35 @@ io.on("connection", socket =>{
                 rooms[room]["users"].push(username)
                 socket.to(room).emit('new', username)
                 callback(200, username)
-            } else {
-                callback(100)
-            }
-        } else {
-            rooms[room] = {password:pass, users:[], id:[]}
-            socket.join(room)
-            callback(404)
-        }
+                return
+            } 
+            callback(100)
+            return
+        } 
+        rooms[room] = {password:pass, users:[], id:[]}
+        socket.join(room)
+        callback(404)
     })
-    socket.on("set-name", (room, user, setUser)=>{ //note to self, need to add a callback to this
+    socket.on("set-name", ({room, user, setUser}, callback)=>{ //note to self, need to add a callback to this
+        if (rooms[room]["users"].filter(e=>e==setUser).length){
+            setUser = setUser+ `#${rooms[room]["users"].filter(e=>e==setUser).length}`
+        } 
         socket.user.username = setUser
         rooms[room]["users"][rooms[room]["users"].indexOf(user)] = setUser
         socket.to(room).emit("changed", user, setUser)
+        callback(setUser)
     })
-    socket.on("dm", ({username, room, user, msg})=>{
+    socket.on("dm", ({username, room, user, msg}, callback)=>{
         var now = new Date().getTime()
         now = getNow(now)
-        room = rooms[room]["id"][rooms[room]["users"].indexOf(user)]
+        user = rooms[room]["users"].indexOf(user)
+        if (user <0){
+            callback(404)
+            return
+        }
+        room = rooms[room]["id"][user]
         socket.to(room).emit("recieve", {room:"\x1b[35mprivate\x1b[0m", user:username, message:`${msg}`, now:now})
+        callback(200)
     })
     socket.on("list", (room, callback)=>{
         callback(rooms[room]["users"])

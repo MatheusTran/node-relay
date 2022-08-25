@@ -13534,7 +13534,7 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-const host = "https://node-relay-station.herokuapp.com"
+const host = "http://localhost:9000"
 //https://node-relay-station.herokuapp.com, http://localhost:9000
 var socket = lookup.connect(host, {reconnect: true});
 
@@ -13642,14 +13642,23 @@ function messenger(){
                     \x1b[0m`);
                 break;
             case 'name':
-                socket.emit("set-name", room, username, command[1])
-                username = command[1]
-                console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
-                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
+                socket.emit("set-name", {room, user:username, setUser:command[1]}, (response)=>{
+                    username = response
+                    console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
+                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
+                })
                 break;
-            case 'tell':
-                console.log(`send ${command[1]} message: ${command[2]}`)
-                socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:command[2]})
+            case 'dm':
+                socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:command[2]}, (response)=>{
+                    switch(response){
+                        case 200:
+                            console.log(`\x1b[36mmessage successfully sent to ${command[1]}\x1b[0m`)
+                            break;
+                        case 404:
+                            console.log(`\x1b[31mcould not find user ${command[1]}\x1b[0m`)
+                            break;
+                    }
+                })
                 break;
             case 'exit':
                 process.exit(1)
