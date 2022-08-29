@@ -1,9 +1,25 @@
 const app = require("express")()
 const server = require("http").createServer(app)
-
+const { Server } = require("socket.io");
 const io = require("socket.io")(server)
 
-socketToRoom = {}
+const { instrument } = require("@socket.io/admin-ui");
+
+//socket admin ui. I HAVE NO CLUE WHY THIS FUCKS UP MY CODE. ESPECIALLY THE TOP PART
+/* const admin = new Server(server, {
+    cors: {
+        origin: ["https://admin.socket.io"],
+        credentials: true
+    }
+}); 
+instrument(admin, {
+    auth: {
+        type: "basic",
+        username: "Mr Robot",
+        password: "$2b$10$sk8wCRvsCjOZdplILzH3T.jDxhL8ltWoi7js.gLJcyraspf3.dPdK"
+    }
+}); */
+
 
 var rooms = {"tbf":{password:"scaevitas", users:[], id:[]}, "room2":{password:"", users:[], id:[]}, "general":{password:"", users:[], id:[]}}
 
@@ -21,7 +37,6 @@ io.on("connection", socket =>{
         if (rooms[room]){
             if (pass === rooms[room]["password"]){
                 socket.join(room)
-                socket.join(socket.id)
                 if (rooms[room]["users"].filter(e=>e==username).length){
                     username = username+ `#${rooms[room]["users"].filter(e=>e==username).length}`
                 } 
@@ -56,7 +71,7 @@ io.on("connection", socket =>{
             return
         }
         room = rooms[room]["id"][user]
-        socket.to(room).emit("recieve", {room:"\x1b[35mprivate\x1b[0m", user:username, message:`${msg}`, now:now})
+        io.to(room).emit("private", {room, user:username, message:msg, now:now})
         callback(200)
     })
     socket.on("list", (room, callback)=>{
@@ -83,7 +98,6 @@ io.on("connection", socket =>{
             rooms[room]["id"].splice(rooms[room]["id"].indexOf(socket.id),1)
             socket.to(room).emit("leave", socket.user.username)
         }
-        //socket.to(socketToRoom[socket]).emit("leave", socket)
     })
 });
 //the env port checks if there is an environmental variable

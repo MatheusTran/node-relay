@@ -1,6 +1,5 @@
 
 import { io } from "socket.io-client";
-var socket = io.connect('https://node-relay-station.herokuapp.com', {reconnect: true});
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { createSpinner } from "nanospinner";
@@ -9,6 +8,10 @@ import myRL from "serverline";
 var username = "anonymous"
 
 var room = ""
+
+const host = await inquirer.prompt({name:"url", prefix:">", type:"input", message:"url", default(){return "http://localhost:9000"}})
+
+var socket = io.connect(host.url, {reconnect: true});
 
 console.log("welcome to messenger")
 

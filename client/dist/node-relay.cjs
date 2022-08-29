@@ -13534,15 +13534,21 @@ const inquirer = {
   restoreDefaultPrompts,
   Separator,
 };
-const host = "https://node-relay-station.herokuapp.com"
+
+var input = require('prompt-sync')();
+console.log("node-relay")
+var host = input("> host: \x1b[32m(node-relay station)\x1b[0m ", {
+    value:"https://node-relay-station.herokuapp.com"
+})
+host = host=="local"? "http://localhost:9000":host
 //https://node-relay-station.herokuapp.com, http://localhost:9000
+console.clear()
 var socket = lookup.connect(host, {reconnect: true});
 
 var username = "anonymous";
 
 var room = "";
 
-console.log("node-relay");
 
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
@@ -13648,7 +13654,13 @@ function messenger(){
                     myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
                 })
                 break;
+            case "whisper":
+            case "tell":
             case 'dm':
+                if (command.length<3){
+                    console.log(`\x1b[31m2 arguments expected. Only had ${command.length-1}\x1b[0m`)
+                    break;
+                }
                 socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:command[2]}, (response)=>{
                     switch(response){
                         case 200:
@@ -13709,6 +13721,11 @@ function messenger(){
                     });
                     break;
                 }
+                if (line.charAt(0)==="!"){
+                    socket.emit(command[0]?.replace(" ", ""), {room, username, line}, (response)=>{
+                        eval(response)
+                    })
+                } //this is just so that it is possible to add new commands server side
                 socket.emit("message", room, username, line);
                 break;
         }
@@ -13720,13 +13737,21 @@ function messenger(){
 }
 
 const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
-
+//sockets
 socket.on("recieve", ({room, user, message, now})=>{
     console.log(`\x1b[0m@~/${room}/${user}: ${message}`);
 });
 
 socket.on("changed", (user, newUser)=>{
     console.log(`\x1b[0m\x1b[33muser ${user} changed their name to ${newUser}\x1b[0m`)
+})
+
+socket.on("private", ({room, user, message})=>{
+    if (room == socket.id){
+        console.log(`\x1b[0m@~/\x1b[35mprivate\x1b[0m/${user}: ${message}`)
+        return
+    } 
+    console.log(`\x1b[0m@~/\x1b[35mprivate\x1b[0m/\x1b[31m${`*`.repeat(user.length)}\x1b[0m: \x1b[31m${`*`.repeat(message.length)}\x1b[0m`)
 })
 
 socket.on("new", (username)=>{
@@ -13739,7 +13764,7 @@ socket.on("leave", (user)=>{
 
 socket.on('connect', () => {
     sleep(1000);
-    load.success({text:`\x1b[33msecure connection to server ${host} established\x1b[0m`});
+    load.success({text:`\x1b[33msecure connection to server established\x1b[0m`});
     (async ()=>{
         await getName();
         console.log(`welcome ${username}`);
