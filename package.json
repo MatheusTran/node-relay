@@ -2,8 +2,8 @@
   "name": "node-relay-station",
   "version": "1.0.0",
   "description": "message people using node.js",
-  "main": "index.js",
-  "bin": "./index.js",
+  "main": "./server/index.js",
+  "bin": "./server/index.js",
   "scripts": {
     "start":"cd server && npm run start",
     "dev": "nodemon ./index.js"
