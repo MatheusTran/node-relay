@@ -3,7 +3,7 @@ const server = require("http").createServer(app)
 const { Server } = require("socket.io");
 const io = require("socket.io")(server)
 
-const { instrument } = require("@socket.io/admin-ui");
+//const { instrument } = require("@socket.io/admin-ui");
 
 //socket admin ui. I HAVE NO CLUE WHY THIS FUCKS UP MY CODE. ESPECIALLY THE TOP PART
 /* const admin = new Server(server, {
