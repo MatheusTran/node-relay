@@ -7,5 +7,8 @@
         "startCommand": "node ./server/index.js",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 10
+    },
+    "engines": {
+        "node": "16.x"
     }
 }
