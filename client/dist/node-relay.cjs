@@ -1,5 +1,13 @@
 'use strict';
 
+function colorMsg(rgb, msg) {
+    const color = `\x1b[38;2;${rgb.r};${rgb.g};${rgb.b}m`; // Set foreground color
+    const reset = `\x1b[0m`; // Reset to default colors
+    return (`${color}${msg}${reset}`);
+}
+
+const crypto = require('crypto');
+const fs = require('node:fs');
 var XMLHttpRequestModule = require('xmlhttprequest-ssl');
 var require$$0$1 = require('stream');
 var require$$0 = require('zlib');
@@ -9941,7 +9949,7 @@ function takeUntil(notifier) {
 class Separator {
   constructor(line) {
     this.type = 'separator';
-    this.line = chalk.dim(line || new Array(15).join(figures.line));
+    this.line = "\x1b[2m" + line || new Array(15).join(figures.line) + "\x1b[0m";
   }
 
   /**
@@ -11576,7 +11584,7 @@ class Prompt {
       if (this.opt.type === 'password') {
         message += chalk.italic.dim('[hidden] ');
       } else {
-        message += chalk.dim('\x1b[32m(' + this.opt.default + ')\x1b[0m ');
+        message += '\x1b[2m(' + this.opt.default + ')\x1b[0m '; // note to self, I can make it so that it will overlap the text over the default value
       }
     }
 
@@ -11675,7 +11683,7 @@ class Paginator {
     return (
       visibleLines.join('\n') +
       '\n' +
-      chalk.dim('(Move up and down to reveal more choices)')
+      ('\x1b[2m(Move up and down to reveal more choices)\x1b[0m')
     );
   }
 
@@ -11805,7 +11813,7 @@ class ListPrompt extends Prompt {
     let message = this.getQuestion();
 
     if (this.firstRender) {
-      message += chalk.dim('(Use arrow keys)');
+      message += chalk.dim('\x1b[2m(Use arrow keys)\x1b[0m');
     }
 
     // Render choices or answer depending on the state
@@ -13061,9 +13069,9 @@ class EditorPrompt extends Prompt {
     let message = this.getQuestion();
 
     if (this.status === 'answered') {
-      message += chalk.dim('Received');
+      message += ('\x1b[2mReceived\x1b[0m');
     } else {
-      message += chalk.dim('Press <enter> to launch your preferred editor.');
+      message += ('\x1b[2mPress <enter> to launch your preferred editor.\x1b[2m');
     }
 
     if (error) {
@@ -13536,9 +13544,8 @@ const inquirer = {
 };
 
 var input = require('prompt-sync')();
-console.log("node-relay")
-var host = input("> host: \x1b[32m(node-relay station)\x1b[0m ", {
-    value:"https://node-relay-station.herokuapp.com"
+var host = input("> host: \x1b[2m(localhost:9000)\x1b[0m ", {
+    value:"http://localhost:9000"
 })
 host = host=="local"? "http://localhost:9000":host
 //https://node-relay-station.herokuapp.com, http://localhost:9000
@@ -13546,9 +13553,126 @@ console.clear()
 var socket = lookup.connect(host, {reconnect: true});
 
 var username = "anonymous";
-
 var room = "";
+const rand = () => Math.floor(127 + Math.random() * 128); // Generates numbers from 127 to 255
+var user_rgb = {r:rand(), g:rand(), b:rand()}
+var publicKey = "";
+var privateKey = "";
+var encryptionKey = "";
+var passphrase = "this is an example encryption key";
+var ivSize = 16;
 
+function generateAsymmetricKeys(passphrase) {
+    crypto.generateKeyPair('rsa', {
+        modulusLength: 2048,  
+        publicKeyEncoding: {
+            type: 'spki',       
+            format: 'pem'
+        },
+        privateKeyEncoding: {
+            type: 'pkcs8',      
+            format: 'pem',      
+            cipher: 'aes-256-cbc',   
+            passphrase
+        }
+    }, (err, publicKeyGenerated, privateKeyGenerated) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        publicKey = publicKeyGenerated
+        privateKey = privateKeyGenerated
+    });
+}
+
+function generateSymmetricKey(keyLength = 32) {
+    const key = crypto.randomBytes(keyLength);
+    return key.toString('hex');
+}
+
+function encryptData(data, keyHex) {
+    const key = Buffer.from(keyHex, 'hex'); // Convert hex string back to Buffer
+    const iv = crypto.randomBytes(ivSize); // AES block size in bytes
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(data, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const encryptedOutput = iv.toString('hex') + encrypted; // Combine IV and encrypted data
+    return encryptedOutput;
+}
+
+function decryptData(encryptedOutput, keyHex) {
+    try {
+        const key = Buffer.from(keyHex, 'hex'); // Convert hex string back to Buffer
+        const iv = Buffer.from(encryptedOutput.substring(0, 32), 'hex'); // Extract IV from combined output
+        const encryptedData = encryptedOutput.substring(32); // Extract encrypted data
+        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    } catch (e) {
+        return "???"
+    }
+}
+
+generateAsymmetricKeys(passphrase);
+
+function encryptDataAsymmetric(data, publicKey) {
+    try {
+        const buffer = Buffer.from(data, 'utf8');
+        const encrypted = crypto.publicEncrypt(publicKey, buffer);
+        return encrypted.toString('base64');
+    } catch (error) {
+        console.error('Encryption error:', error);
+        return null;
+    }
+}
+
+function decryptDataAsymmetric(encryptedData, privateKey, passphrase) {
+    try {
+        const buffer = Buffer.from(encryptedData, 'base64');
+        const decrypted = crypto.privateDecrypt(
+            {
+                key: privateKey,
+                passphrase: passphrase,
+                //padding: crypto.constants.RSA_PKCS1_PADDING,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+            },
+            buffer
+        );
+        return decrypted.toString('utf8');
+    } catch (error) {
+        console.error('Decryption error:', error);
+        return null;
+    }
+}
+
+function clear_screen() {
+    process.stdout.write('\x1Bc')
+}
+
+/**
+ * message template
+ */
+function message_template(time, room, username, msg) {
+    return `@~[${time}][${room}][${username}]#: ${msg}`
+}
+
+function writeToFile(file, content) {
+    try {
+        fs.writeFileSync(file, content);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function readJsonFile(file) {
+    try {
+        return JSON.parse(fs.readFileSync(file))
+    } catch (err) {
+        console.log(err);
+        return null;
+    }
+}
 
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
@@ -13572,186 +13696,302 @@ async function getName(){
     username = input.username;
 }
 
-async function menu(){
+async function getColor(){
+    console.log("press enter for random color")
+    const red = await inquirer.prompt({
+        name: 'val',
+        prefix:colorMsg({r:255, g:0, b:0}, ">"),
+        type: 'input',
+        message: colorMsg({r:255, g:0, b:0}, 'red: '),
+        default(){
+            return rand()
+        }
+    })
+    const green = await inquirer.prompt({
+        name: 'val',
+        prefix:colorMsg({r:0, g:255, b:0}, ">"),
+        type: 'input',
+        message: colorMsg({r:0, g:255, b:0}, 'green: '),
+        default(){
+            return rand()
+        }
+    })
+    const blue = await inquirer.prompt({
+        name: 'val',
+        prefix:colorMsg({r:0, g:0, b:255}, ">"),
+        type: 'input',
+        message: colorMsg({r:0, g:0, b:255}, 'blue: '),
+        default(){
+            return rand()
+        }
+    })
+    user_rgb = {r:red.val, g:green.val, b:blue.val}
+}
+
+// commands
+function list_room() {
+    socket.emit("list", room, (list)=>{
+        list.forEach((users, index)=>{
+            console.log(`\x1b[36m${index}:\x1b[0m ${users}`)
+        })
+    })
+}
+
+function send_private_msg(command) {
+    if (command.length<3){
+        console.log(`\x1b[31m2 arguments expected. Only had ${command.length}\x1b[0m`)
+        return;
+    }
+    socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:encryptData(command[2], encryptionKey)}, (response)=>{
+        switch(response){
+            case 200:
+                console.log(`\x1b[36mmessage successfully sent to ${command[1]}\x1b[0m`)
+                break;
+            case 404:
+                console.log(`\x1b[31mcould not find user ${command[1]}\x1b[0m`)
+                break;
+        }
+    })
+}
+
+function help_page() {
+    console.log("Commands are currently an experimnetal feature.")
+    console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
+!help: To get this message. 
+!name (alias: nick): to set a new name for yourself. Syntax: !name !%setName%.
+!leave (alias: !menu): goes back to homescreen.
+!exit: exits out of node-relay. You can also do ctr + c
+!list: lists all users in the room.
+!tell: privately sends a message. syntax !tell !name %name% !msg %msg%
+!pass: sets a new password for the room. only available to room admins
+!cls (alias: cls): clears entire screens
+!id: prints your socket id
+    \x1b[0m`);
+}
+
+function set_name(command) {
+    socket.emit("set-name", {room, user:username, setUser:command[1]}, (response)=>{
+        username = response
+        console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
+        myRL__default["default"].setPrompt(message_template(room, colorMsg(user_rgb, username), ""));
+    })
+}
+
+function printCenteredBox() {
+    const boxWidth = 46; // Width of the box
+
+    // Function to remove ANSI escape codes for length calculations
+    function stripAnsi(str) {
+        return str.replace(/\x1b\[[0-9;]*m/g, '');
+    }
+
+    // Function to create a line with centered text, ignoring ANSI codes
+    function createLine(text) {
+        const cleanText = stripAnsi(text); // Get text length without ANSI codes
+        const padding = boxWidth - 2 - cleanText.length; // Calculate total padding needed
+        const paddingLeft = Math.floor(padding / 2); // Padding on the left side
+        const paddingRight = padding - paddingLeft; // Padding on the right side
+        return `|${' '.repeat(paddingLeft)}${text}${' '.repeat(paddingRight)}|\n`;
+    }
+
+    // Welcome message with color
+    const welcomeMsg = `welcome ${colorMsg(user_rgb, username)}`;
+    const idMsg = `id: \x1b[35m${socket.id}\x1b[0m`;
+    const rgbMsg = `rgb: (${user_rgb.r} ${user_rgb.g} ${user_rgb.b})`;
+
+    return ("+--------------------------------------------+\n") +
+    (createLine(welcomeMsg)) +
+    (createLine(idMsg)) + 
+    (createLine(rgbMsg)) + 
+    ("+--------------------------------------------+\n");
+}
+
+async function settings() {
+    clear_screen()
     const input = await inquirer.prompt({
         name:"menu",
         type:"list",
+        prefix:printCenteredBox(),
+        message:"Select an action\n",
+        choices:[
+            "change username",
+            "change color",
+            "load settings",
+            "load keys",
+            "generate keys",
+            "export settings",
+            "back"
+        ]
+    });
+    switch (input.menu){
+        case "load settings":
+            var res = await inquirer.prompt({name:"file", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"file:"});
+            var data = readJsonFile(res.file)
+            if (data) {
+                username = data?.username ? data.username : username
+                user_rgb = data?.rgb ? data.rgb : user_rgb
+                privateKey = data?.privateKey ? data.privateKey : privateKey
+                privateKey = data?.publicKey ? data.publicKey : publicKey
+            }
+            await settings();
+            return;
+        case "change color":
+            await getColor()
+            await settings()
+            return;
+        case "change username":
+            await getName();
+            await settings();
+            return;
+        case "load keys":
+            var publicKeyPath = await inquirer.prompt({name:"file", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"public:"});
+            var privateKeyPath = await inquirer.prompt({name:"file", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"private:"});
+            publicKey = fs.readFileSync(publicKeyPath.file, 'utf-8');
+            privateKey = fs.readFileSync(privateKeyPath.file, 'utf-8');
+            await settings();
+            break;
+        case "generate keys":
+            var newPassphrase = await inquirer.prompt({name:"passphrase", prefix:chalk.green(">"), type:"password", mask:"*", message:"passphrase:"});
+            passphrase = newPassphrase.passphrase
+            generateAsymmetricKeys(passphrase)
+            await settings();
+            break;
+        case "export settings":
+            writeToFile("test.json", JSON.stringify({username, rgb:user_rgb, privateKey, publicKey}))
+            await settings();
+            break;
+        case "back":
+            await menu();
+            return;
+    }
+}
+
+async function menu(){
+    clear_screen()
+    const input = await inquirer.prompt({
+        name:"menu",
+        type:"list",
+        prefix:printCenteredBox(),
         message:"Select an action\n",
         choices:[
             "join room",
-            "change username",
+            "settings",
             "exit program",
         ]
     });
     switch (input.menu){
-        case "exit program":
-            process.exit(1);
-            break;//technically useless
-        case "change username":
-            await getName();
-            await menu();
-            break;
+        case "settings":
+            await settings();
+            return;
         case "join room":
             var ui = await inquirer.prompt({name:"room", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"room:"});
             room = ui.room;
             if (!room){
                 room = "general";
             }
-            var pass = await inquirer.prompt({name:"pass", prefix:"\x1b[36m>\x1b[0m", type:"password", mask:"*", message:"pass:"});
-            pass = pass.pass;
+            var pass = await inquirer.prompt({name:"pass", prefix:chalk.green(">"), type:"password", mask:"*", message:"pass:"});
+            pass = pass.pass
             const spinner = nanospinner.createSpinner('verifying...').start();
-            await sleep();
-            socket.emit("join", {room, pass, username}, (response, name)=>{
+            socket.emit("join", {room, pass, username, publicKey}, (response, newName, key) =>{
                 switch (response){
                     case 100:
-                        spinner.error({text:`\x1b[31mincorrect password for room "${room}"\x1b[0m`});
-                        menu();
+                        spinner.error({text:chalk.red(`incorrect password for room "${room}"`)})
+                        menu()
                         break;
                     case 200:
-                        setTerminalTitle(room)
-                        spinner.success({text:`\x1b[33msuccessfully joined ${room}\x1b[0m`});
-                        console.log('type !help for a list of commands')
-                        username = name
-                        messenger();
+                        username = newName;
+                        encryptionKey = decryptDataAsymmetric(key[0], privateKey, passphrase)
+                        spinner.success({text:chalk.yellow(`successfully joined ${room}`)})
+                        messenger()
+                        break;
+                    case 206:
+                        encryptionKey = generateSymmetricKey();
+                        spinner.success({text:chalk.yellow(`successfully joined ${room}`)})
+                        messenger()
                         break;
                     case 404:
-                        spinner.error({text:`\x1b[31mCould not find room ${room}. Created a new room instead\x1b[0m`});
-                        messenger();
+                        spinner.error({text:chalk.red(`could not find room ${room}. Created a new room instead`)})
+                        encryptionKey = generateSymmetricKey();
+                        messenger()
                         break;
+                    default:
+                        spinner.error({text:chalk.red(`an unknown issue occured when connecting to "${room}"`)})
+                        menu()
                 }
-            });
+            })
             break;
+        case "exit program":
+            process.exit(1);
     }
 }
 
-var newRoom = ""
-var pwd = false
-
-function messenger(){
-    myRL__default["default"].init(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
-    myRL__default["default"].setCompletion(['!help', '!goto', '!name', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
-    myRL__default["default"].on('line', function(line) {
+async function messenger(){
+    myRL__default["default"].init(message_template(room, colorMsg(user_rgb, username), ""));
+    myRL__default["default"].setCompletion(['!help', '!goto', '!name','!nick', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
+    myRL__default["default"].on('line', async function(line) {
         var command = line.split("!")
         command.splice(0,1)
         switch (command[0]?.replace(" ", "")) {            
             case 'help':
-                console.log("Commands are currently an experimnetal feature.")
-                console.log(`\x1b[36mpress tab to auto complete commands. Commands are not sent to other users
-    !help: To get this message. 
-    !name: to set a new name for yourself. Syntax: name !%setName%
-    !goto (alias: goto, !join): go to different room. Syntax: goto !%room%.
-    !exit: exits out of node-relay. You can also do ctr + c
-    !list: lists all users in the room.
-    !tell: privately sends a message. syntax !tell !name %name% !msg %msg%
-    !pass: sets a new password for the room. only available to room admins
-    !cls (alias: cls): clears entire screens
-                    \x1b[0m`);
+                help_page();
                 break;
+            case 'nick':
             case 'name':
-                socket.emit("set-name", {room, user:username, setUser:command[1]}, (response)=>{
-                    username = response
-                    console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
-                    myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
-                })
+                set_name(command);
                 break;
             case "whisper":
             case "tell":
             case 'dm':
-                if (command.length<3){
-                    console.log(`\x1b[31m2 arguments expected. Only had ${command.length-1}\x1b[0m`)
-                    break;
-                }
-                socket.emit("dm", {username, room:room, user:command[1].slice(0, -1), msg:command[2]}, (response)=>{
-                    switch(response){
-                        case 200:
-                            console.log(`\x1b[36mmessage successfully sent to ${command[1]}\x1b[0m`)
-                            break;
-                        case 404:
-                            console.log(`\x1b[31mcould not find user ${command[1]}\x1b[0m`)
-                            break;
-                    }
-                })
+                send_private_msg(command);
                 break;
             case 'exit':
                 process.exit(1)
             case 'cls':
-                process.stdout.write('\x1Bc')
+                clear_screen();
                 break;
             case "list":
-                socket.emit("list", room, (list)=>{
-                    list.forEach((users, index)=>{
-                        console.log(`\x1b[36m${index}:\x1b[0m ${users}`)
-                    })
-                })
+                list_room();
                 break;
-            case "join":
-            case "goto":
-                newRoom = command[1]
-                myRL__default["default"].setMuted(true, "\x1b[36m>\x1b[0m pass: ")
-                return true
+            case "leave":
+            case "menu":
+                socket.emit("leave", room, username)
+                myRL__default["default"].close()
+                clear_screen();
+                await menu();
+                return;
             case "pass":
                 break;
+            case "id":
+                console.log(`\x1b[35m${socket.id}\x1b[0m`)
+                break;
             default:
-                if (myRL__default["default"].isMuted()){
-                    console.log(`\x1b[0mattempting to join ${newRoom}`)
-                    myRL__default["default"].setMuted(false)
-                    var pass = line
-                    const spinner = nanospinner.createSpinner('\x1b[0mverifying...').start();
-                    socket.emit("join", {room:newRoom, pass, username}, (response)=>{
-                        switch (response){
-                            case 100:
-                                spinner.error({text:`\x1b[0m\x1b[31mincorrect password for room "${newRoom}"\x1b[0m`});
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
-                                break;
-                            case 200:
-                                setTerminalTitle(room)
-                                spinner.success({text:`\x1b[0m\x1b[33msuccessfully joined ${newRoom}\x1b[0m`});
-                                console.log('type !help for a list of commands')
-                                socket.emit("leave", room, username)
-                                room = newRoom
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
-                                break;
-                            case 404:
-                                spinner.error({text:`\x1b[0m\x1b[31mCould not find room ${newRoom}. Created a new room instead\x1b[0m`});
-                                socket.emit("leave", room, username)
-                                room = newRoom
-                                myRL__default["default"].setPrompt(`\x1b[32m@~/${room}/${username}: \x1b[0m`);
-                                break;
-                        }
-                    });
-                    break;
-                }
-                if (line.charAt(0)==="!"){
-                    socket.emit(command[0]?.replace(" ", ""), {room, username, line}, (response)=>{
+                if (line.charAt(0)==="!"){ //this is just so that it is possible to add new commands server side
+                    socket.emit(command[0]?.replace(" ", ""), {room, username, line, user_rgb}, (response)=>{
                         eval(response)
                     })
-                } //this is just so that it is possible to add new commands server side
-                socket.emit("message", room, username, line);
+                } 
+                socket.emit("message", room, username, encryptData(line, encryptionKey), user_rgb);
                 break;
         }
-        });
-    
-        myRL__default["default"].on('SIGINT', function(rl) {
-            process.exit(1);
-        });    
+    });
+    myRL__default["default"].on('SIGINT', function(rl) {
+        process.exit(1);
+    });    
 }
 
 const load = nanospinner.createSpinner(`connecting to ${host}...`).start();
 //sockets
-socket.on("recieve", ({room, user, message, now})=>{
-    console.log(`\x1b[0m@~/${room}/${user}: ${message}`);
-});
+socket.on("recieve", ({now, room, user, message, rgb})=>{
+    console.log(message_template(now, room, colorMsg(rgb, user), decryptData(message, encryptionKey)))
+})
 
 socket.on("changed", (user, newUser)=>{
     console.log(`\x1b[0m\x1b[33muser ${user} changed their name to ${newUser}\x1b[0m`)
 })
 
+// note to self. Make this encrypted. I will in the future
 socket.on("private", ({room, user, message})=>{
-    if (room == socket.id){
-        console.log(`\x1b[0m@~/\x1b[35mprivate\x1b[0m/${user}: ${message}`)
-        return
-    } 
-    console.log(`\x1b[0m@~/\x1b[35mprivate\x1b[0m/\x1b[31m${`*`.repeat(user.length)}\x1b[0m: \x1b[31m${`*`.repeat(message.length)}\x1b[0m`)
+    console.log(message_template("\x1b[35mPRIVATE\x1b[0m", user, decryptData(message, encryptionKey)))
 })
 
 socket.on("new", (username)=>{
@@ -13762,13 +14002,22 @@ socket.on("leave", (user)=>{
     console.log(`\x1b[0m\x1b[31m${user} has left the room\x1b[0m`);
 });
 
+socket.on("request-key", ({id, foreignPublicKey}, callback) => {
+    if (!encryptionKey) {
+        encryptionKey = generateSymmetricKey();
+    }
+    var encryptedEncryptionKey = encryptDataAsymmetric(encryptionKey, foreignPublicKey)
+    callback(encryptedEncryptionKey);
+});
+
 socket.on('connect', () => {
-    sleep(1000);
     load.success({text:`\x1b[33msecure connection to server established\x1b[0m`});
     (async ()=>{
+        if (myRL__default["default"].getRL() != null) {
+            myRL__default["default"].close()
+        }
+        clear_screen();
         await getName();
-        console.log(`welcome ${username}`);
-        console.log(`socket id: \x1b[35m${socket.id}\x1b[0m`)
         await menu();
     })();
 });

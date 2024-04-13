@@ -1,14 +1,14 @@
 module.exports = {
   file: "./dist/node-relay.cjs",
-  icon: "./dist/iconset.ico",
+  icon: "./dist/node_relay.ico",
   name: "node-relay",
-  description: "secure TCP connection to communicate in terminal",
-  company: "magi-tech",
-  version: "2.2.6",
+  description: "socket messaging platform",
+  company: "Mat A Door",
+  version: "2.3.0",
   copyright: "copyrighted",
   pkg: {
     targets: ["node16-win-x64"],
-    outputPath: "dist",
+    outputPath: "dist/bin",
     assets: ["node_modules/**/*"]
   }
 };

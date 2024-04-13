@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "build": "rollup -c",
-    "exe": "pkg dist/node-relay.cjs --targets node16-win --out-path dist",
+    "exe": "pkg dist/node-relay.cjs --targets node16-win --out-path dist/bin",
     "compile": "npx pkg-exe-build build"
   },
   "author": "Matheus Tran",
