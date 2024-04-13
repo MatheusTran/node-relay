@@ -776,7 +776,7 @@ function set_name(command) {
     socket.emit("set-name", {room, user:username, setUser:command[1]}, (response)=>{
         username = response
         console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
-        myRL__default["default"].setPrompt(message_template(room, colorMsg(user_rgb, username), ""));
+        myRL.setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
     })
 }
 

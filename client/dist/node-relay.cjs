@@ -13646,6 +13646,14 @@ function decryptDataAsymmetric(encryptedData, privateKey, passphrase) {
     }
 }
 
+function getNow(){
+    var time = new Date().getTime()
+    var hours = Math.floor((time % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    var minutes = Math.floor((time % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((time % (1000 * 60)) / 1000);
+    return (hours<10 ? "0" : "") + hours + (minutes<10 ? ":0" : ":") + minutes + (seconds<10 ? ":0" : ":") + seconds   
+}
+
 function clear_screen() {
     process.stdout.write('\x1Bc')
 }
@@ -13773,7 +13781,7 @@ function set_name(command) {
     socket.emit("set-name", {room, user:username, setUser:command[1]}, (response)=>{
         username = response
         console.log(`\x1b[36mchanged name to ${username}\x1b[0m`)
-        myRL__default["default"].setPrompt(message_template(room, colorMsg(user_rgb, username), ""));
+        myRL__default["default"].setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
     })
 }
 
@@ -13926,7 +13934,10 @@ async function menu(){
 }
 
 async function messenger(){
-    myRL__default["default"].init(message_template(room, colorMsg(user_rgb, username), ""));
+    myRL__default["default"].init(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
+    setInterval(() => {
+        myRL__default["default"].setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
+    }, 1000);
     myRL__default["default"].setCompletion(['!help', '!goto', '!name','!nick', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
     myRL__default["default"].on('line', async function(line) {
         var command = line.split("!")
@@ -13991,7 +14002,7 @@ socket.on("changed", (user, newUser)=>{
 
 // note to self. Make this encrypted. I will in the future
 socket.on("private", ({room, user, message})=>{
-    console.log(message_template("\x1b[35mPRIVATE\x1b[0m", user, decryptData(message, encryptionKey)))
+    console.log(message_template(getNow(), "\x1b[35mPRIVATE\x1b[0m", user, decryptData(message, encryptionKey)))
 })
 
 socket.on("new", (username)=>{
