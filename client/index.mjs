@@ -34,7 +34,7 @@ return {
     getPrompt: function() {
     return myPrompt
     },
-    setPrompt: function(strPrompt) {
+    setPrompt: async function(strPrompt) {
     myPrompt = strPrompt
     rl.setPrompt(myPrompt)
     },
@@ -699,8 +699,9 @@ function message_template(time, room, username, msg) {
 async function messenger(){
     myRL.init(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
     
-    setInterval(() => {
-        myRL.setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
+    setInterval(async () => {
+        rl._refreshLine()
+        await myRL.setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
     }, 1000);
     
     myRL.setCompletion(['!help', '!goto', '!name','!nick', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
