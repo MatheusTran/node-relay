@@ -29,70 +29,70 @@ return {
     cleanup:cleanup,
     secret: secret,
     question: function() {
-    rl.question.apply(rl, arguments)
+        rl.question.apply(rl, arguments)
     },
     getPrompt: function() {
-    return myPrompt
+        return myPrompt
     },
     setPrompt: async function(strPrompt) {
-    myPrompt = strPrompt
-    rl.setPrompt(myPrompt)
+        myPrompt = strPrompt
+        rl.setPrompt(myPrompt)
     },
     isMuted: function() {
-    return stdoutMuted
+        return stdoutMuted
     },
     setMuted: function(enabled, msg) {
-    stdoutMuted = !!enabled
+        stdoutMuted = !!enabled
 
-    const message = (msg && typeof msg === 'string') ? msg : '> [hidden]'
-    rl.setPrompt((!stdoutMuted) ? myPrompt : message)
-    return stdoutMuted
+        const message = (msg && typeof msg === 'string') ? msg : '> [hidden]'
+        rl.setPrompt((!stdoutMuted) ? myPrompt : message)
+        return stdoutMuted
     },
     setCompletion: function(obj) {
-    completions = (typeof obj === 'object') ? obj : completions
+        completions = (typeof obj === 'object') ? obj : completions
     },
     getHistory: function() {
-    return (rl.terminal) ? rl.history : []
+        return (rl.terminal) ? rl.history : []
     },
     setHistory: function(history) {
-    if (rl.terminal && Array.isArray(history)) {
-        rl.history = history
-        return true
-    }
-    return !!rl.terminal
+        if (rl.terminal && Array.isArray(history)) {
+            rl.history = history
+            return true
+        }
+        return !!rl.terminal
     },
     getCollection: function() {
-    return {
-        stdout: collection.stdout,
-        stderr: collection.stderr
-    }
+        return {
+            stdout: collection.stdout,
+            stderr: collection.stderr
+        }
     },
     getRL: function() {
-    return rl
+        return rl
     },
     close: function() {
-    rl.close()
+        rl.close()
     },
     pause: function() {
-    rl.pause()
+        rl.pause()
     },
     resume: function() {
-    rl.resume()
+        rl.resume()
     },
     on: function(eventName) {
-    switch (eventName) {
-        case 'line':
-        case 'SIGINT':
-        case 'completer':
-        return myEmitter.on.apply(myEmitter, arguments)
-    }
+        switch (eventName) {
+            case 'line':
+            case 'SIGINT':
+            case 'completer':
+            return myEmitter.on.apply(myEmitter, arguments)
+        }
 
-    rl.on.apply(myEmitter, arguments)
-    },
-    _debugModuleSupport: function(debug) {
-    debug.log = function log() {
-        console.log(util.format.apply(util, arguments).toString())
-    }
+        rl.on.apply(myEmitter, arguments)
+        },
+        _debugModuleSupport: function(debug) {
+        debug.log = function log() {
+            console.log(util.format.apply(util, arguments).toString())
+        }
     }
 }
 }
@@ -100,20 +100,19 @@ return {
 let fixSIGINTonQuestion = false
 
 function beforeTheLastLine(chunk) {
-const nbline = Math.ceil((rl.line.length + rl._prompt.length + 1) / rl.columns)
+    const nbline = Math.ceil((rl.line.length + rl._prompt.length + 1) / rl.columns)
 
-let text = ''
-text += '\n\r\x1B[' + nbline + 'A\x1B[0J'
-text += chunk.toString()
-text += Array(nbline).join('\n')
+    let text = ''
+    text += '\n\r\x1B[' + nbline + 'A\x1B[0J'
+    text += chunk.toString()
+    text += Array(nbline).join('\n')
 
-return Buffer.from(text, 'utf8')
+    return Buffer.from(text, 'utf8')
 }
 
 function cleanup() {
     // Remove all listeners attached to the readline instance
     rl.removeAllListeners();
-
     // Close the readline interface if it's still open
     if (rl) {
         rl.close();
@@ -133,91 +132,91 @@ function cleanup() {
 }
 
 function init(options) {
-if (typeof options === 'string') {
-    options = { prompt: options } // eslint-disable-line no-param-reassign
-}
-
-const slOptions = Object.assign({}, {
-    prompt: '> '
-}, options)
-
-if (slOptions.forceTerminalContext) {
-    process.stdin.isTTY = true
-    process.stdout.isTTY = true
-}
-
-if (rl != null) {
-    cleanup();
-}
-
-rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    completer: completer,
-    prompt: slOptions.prompt
-})
-
-if (!rl.terminal) {
-    console.warn('WARN: Compatibility mode! The current context is not a terminal. This may ' +
-    'occur when you redirect terminal output into a file.')
-    console.warn('You can try to define `options.forceTerminalContext = true`.')
-}
-
-const consoleOptions = {}
-
-;(['colorMode', 'inspectOptions', 'ignoreErrors']).forEach((val) => {
-    if (typeof slOptions[val] !== 'undefined') {
-    consoleOptions[val] = slOptions[val]
+    if (typeof options === 'string') {
+        options = { prompt: options } // eslint-disable-line no-param-reassign
     }
-})
 
-consoleOverwrite(consoleOptions)
-hiddenOverwrite()
+    const slOptions = Object.assign({}, {
+        prompt: '> '
+    }, options)
 
-rl.on('line', function(line) {
-    if (!stdoutMuted && rl.history && rl.terminal) {
-    rl.history.push(line)
+    if (slOptions.forceTerminalContext) {
+        process.stdin.isTTY = true
+        process.stdout.isTTY = true
     }
-    myEmitter.emit('line', line)
-    if (rl.terminal) {
+
+    if (rl != null) {
+        cleanup();
+    }
+
+    rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        completer: completer,
+        prompt: slOptions.prompt
+    })
+
+    if (!rl.terminal) {
+        console.warn('WARN: Compatibility mode! The current context is not a terminal. This may ' +
+        'occur when you redirect terminal output into a file.')
+        console.warn('You can try to define `options.forceTerminalContext = true`.')
+    }
+
+    const consoleOptions = {}
+
+    ;(['colorMode', 'inspectOptions', 'ignoreErrors']).forEach((val) => {
+        if (typeof slOptions[val] !== 'undefined') {
+        consoleOptions[val] = slOptions[val]
+        }
+    })
+
+    consoleOverwrite(consoleOptions)
+    hiddenOverwrite()
+
+    rl.on('line', function(line) {
+        if (!stdoutMuted && rl.history && rl.terminal) {
+        rl.history.push(line)
+        }
+        myEmitter.emit('line', line)
+        if (rl.terminal) {
+        rl.prompt()
+        }
+    })
+    rl.on('SIGINT', function() {
+        fixSIGINTonQuestion = !!rl._questionCallback
+        if (rl.terminal) {
+        rl.line = ''
+        }
+        if (!myEmitter.emit('SIGINT', rl)) {
+        process.exit(0)
+        }
+    })
     rl.prompt()
-    }
-})
-rl.on('SIGINT', function() {
-    fixSIGINTonQuestion = !!rl._questionCallback
-    if (rl.terminal) {
-    rl.line = ''
-    }
-    if (!myEmitter.emit('SIGINT', rl)) {
-    process.exit(0)
-    }
-})
-rl.prompt()
 
 
-rl.input.on('data', function(char) { // fix CTRL+C on question
-    if (char === '\u0003' && fixSIGINTonQuestion) {
-    rl._onLine('')
-    rl._refreshLine()
-    }
-    fixSIGINTonQuestion = false
-})
+    rl.input.on('data', function(char) { // fix CTRL+C on question
+        if (char === '\u0003' && fixSIGINTonQuestion) {
+        rl._onLine('')
+        rl._refreshLine()
+        }
+        fixSIGINTonQuestion = false
+    })
 }
 
 function secret(query, callback) {
-const toggleAfterAnswer = !stdoutMuted
-stdoutMuted = true
-rl.question(query, function(value) {
-    if (rl.terminal) {
-    rl.history = rl.history.slice(1)
-    }
+    const toggleAfterAnswer = !stdoutMuted
+    stdoutMuted = true
+    rl.question(query, function(value) {
+        if (rl.terminal) {
+        rl.history = rl.history.slice(1)
+        }
 
-    if (toggleAfterAnswer) {
-    stdoutMuted = false
-    }
+        if (toggleAfterAnswer) {
+            stdoutMuted = false
+        }
 
-    callback(value)
-})
+        callback(value)
+    })
 }
 
 function hiddenOverwrite() {
@@ -685,7 +684,7 @@ function getNow(){
     var seconds = Math.floor((time % (1000 * 60)) / 1000);
     return (hours<10 ? "0" : "") + hours + (minutes<10 ? ":0" : ":") + minutes + (seconds<10 ? ":0" : ":") + seconds   
 }
-
+var intervalid = null;
 
 /**
  * message template
@@ -699,9 +698,9 @@ function message_template(time, room, username, msg) {
 async function messenger(){
     myRL.init(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
     
-    setInterval(async () => {
-        rl._refreshLine()
-        await myRL.setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
+    intervalid = setInterval(() => {
+        myRL.setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
+        myRL.getRL()._refreshLine()
     }, 1000);
     
     myRL.setCompletion(['!help', '!goto', '!name','!nick', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
@@ -731,6 +730,8 @@ async function messenger(){
                 break;
             case "leave":
             case "menu":
+                clearInterval(intervalid);
+                intervalid = null;
                 socket.emit("leave", room, username)
                 myRL.close()
                 clear_screen();
@@ -834,6 +835,10 @@ socket.on('connect', () => {
         if (myRL.getRL() != null) {
             myRL.close()
         }
+        if (intervalid != null) {
+            clearInterval(intervalid)
+            intervalid = null;
+        }
         clear_screen();
         await getName();
         await menu();
@@ -847,3 +852,7 @@ socket.on("request-key", ({id, foreignPublicKey}, callback) => {
     var encryptedEncryptionKey = encryptDataAsymmetric(encryptionKey, foreignPublicKey)
     callback(encryptedEncryptionKey);
 });
+
+socket.on("disconnect", ()=>{
+    console.log(colorMsg({r:255, g:0, b:0}, "disconnected from server"))
+})

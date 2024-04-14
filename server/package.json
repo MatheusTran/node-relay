@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon ./index.js",
-    "exe":"pkg index.js --targets node16-linux --out-path bin"
+    "exe": "pkg index.js --targets node16-linux --out-path bin"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@socket.io/admin-ui": "^0.4.0",
+    "bcrypt": "^5.1.1",
     "express": "^4.18.1",
     "http": "^0.0.1-security",
     "socket.io": "^4.5.1"
