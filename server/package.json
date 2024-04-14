@@ -16,7 +16,6 @@
   "author": "Matheus Tran",
   "license": "ISC",
   "dependencies": {
-    "@socket.io/admin-ui": "^0.4.0",
     "bcrypt": "^5.1.1",
     "express": "^4.18.1",
     "http": "^0.0.1-security",
