@@ -11990,7 +11990,7 @@ class InputPrompt extends Prompt {
     }
 
     if (error) {
-      bottomContent = chalk.red('>> ') + error;
+      bottomContent = colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     this.screen.render(message, bottomContent);
@@ -12249,7 +12249,7 @@ class RawListPrompt extends Prompt {
     message += this.rl.line;
 
     if (error) {
-      bottomContent = '\n' + chalk.red('>> ') + error;
+      bottomContent = '\n' + colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     this.screen.render(message, bottomContent);
@@ -12451,7 +12451,7 @@ class ExpandPrompt extends Prompt {
     message += this.rl.line;
 
     if (error) {
-      bottomContent = chalk.red('>> ') + error;
+      bottomContent = colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     if (hint) {
@@ -12760,7 +12760,7 @@ class CheckboxPrompt extends Prompt {
     }
 
     if (error) {
-      bottomContent = chalk.red('>> ') + error;
+      bottomContent = colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     this.screen.render(message, bottomContent);
@@ -12957,7 +12957,7 @@ class PasswordPrompt extends Prompt {
     }
 
     if (error) {
-      bottomContent = '\n' + chalk.red('>> ') + error;
+      bottomContent = '\n' + colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     this.screen.render(message, bottomContent);
@@ -13075,7 +13075,7 @@ class EditorPrompt extends Prompt {
     }
 
     if (error) {
-      bottomContent = chalk.red('>> ') + error;
+      bottomContent = colorMsg({r:255, g:0, b:0}, '>> ') + error;
     }
 
     this.screen.render(message, bottomContent);
@@ -13903,7 +13903,7 @@ async function menu(){
             socket.emit("join", {room, pass, username, publicKey}, (response, newName, key) =>{
                 switch (response){
                     case 100:
-                        spinner.error({text:chalk.red(`incorrect password for room "${room}"`)})
+                        spinner.error({text:colorMsg({r:255, g:0, b:0}, `incorrect password for room "${room}"`)})
                         menu()
                         break;
                     case 200:
@@ -13918,12 +13918,12 @@ async function menu(){
                         messenger()
                         break;
                     case 404:
-                        spinner.error({text:chalk.red(`could not find room ${room}. Created a new room instead`)})
+                        spinner.error({text:colorMsg({r:255, g:0, b:0}, `could not find room ${room}. Created a new room instead`)})
                         encryptionKey = generateSymmetricKey();
                         messenger()
                         break;
                     default:
-                        spinner.error({text:chalk.red(`an unknown issue occured when connecting to "${room}"`)})
+                        spinner.error({text:colorMsg({r:255, g:0, b:0}, `an unknown issue occured when connecting to "${room}"`)})
                         menu()
                 }
             })
@@ -13933,10 +13933,13 @@ async function menu(){
     }
 }
 
+var intervalid = null;
+
 async function messenger(){
     myRL__default["default"].init(message_template(getNow(), room, colorMsg(user_rgb, username), ""));
-    setInterval(() => {
+    intervalid = setInterval(() => {
         myRL__default["default"].setPrompt(message_template(getNow(), room, colorMsg(user_rgb, username), ""))
+        myRL__default["default"].getRL()._refreshLine()
     }, 1000);
     myRL__default["default"].setCompletion(['!help', '!goto', '!name','!nick', '!exit', '!list', '!tell', '!cls', 'cls', 'goto', '!join'])
     myRL__default["default"].on('line', async function(line) {
@@ -13966,6 +13969,8 @@ async function messenger(){
             case "leave":
             case "menu":
                 socket.emit("leave", room, username)
+                clearInterval(intervalid);
+                intervalid = null;
                 myRL__default["default"].close()
                 clear_screen();
                 await menu();
@@ -14027,8 +14032,16 @@ socket.on('connect', () => {
         if (myRL__default["default"].getRL() != null) {
             myRL__default["default"].close()
         }
+        if (intervalid != null) {
+            clearInterval(intervalid)
+            intervalid = null;
+        }
         clear_screen();
         await getName();
         await menu();
     })();
 });
+
+socket.on("disconnect", ()=>{
+    console.log(colorMsg({r:255, g:0, b:0}, "disconnected from server"))
+})

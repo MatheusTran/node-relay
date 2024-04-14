@@ -48,6 +48,7 @@ io.on("connection", socket =>{
             return;
         }
         // Hashing the password before creating the room
+        // note to self, it would be better if the password is hashed before sending it to the server
         const passwordHash = await bcrypt.hash(pass, saltRounds);
         rooms[room] = {passwordHash, users:[], id:[]};
         rooms[room].id.push(socket.id);

@@ -7,6 +7,7 @@ import EventEmitter from "events";
 import readline from "readline";
 import stream from "stream";
 import util from "util";
+import fs from "fs";
 
 /*
  * asynchronously read inputs
@@ -442,7 +443,8 @@ function decryptDataAsymmetric(encryptedData, privateKey, passphrase) {
 /**
  * connect to host
  */
-const host = await inquirer.prompt({name:"url", prefix:">", type:"input", message:"url", default(){return "http://localhost:9000"}})
+var default_host = "https://node-relay.onrender.com"
+const host = await inquirer.prompt({name:"url", prefix:">", type:"input", message:"url", default(){return default_host}})
 var socket = io.connect(host.url, {reconnect: true});
 
 /**
@@ -614,6 +616,23 @@ async function menu(){
     }
 }
 
+function writeToFile(file, content) {
+    try {
+        fs.writeFileSync(file, content);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function readJsonFile(file) {
+    try {
+        return JSON.parse(fs.readFileSync(file))
+    } catch (err) {
+        console.log(err);
+        return null;
+    }
+}
+
 /**
  * settings screen
  */
@@ -639,10 +658,10 @@ async function settings() {
             var res = await inquirer.prompt({name:"file", prefix:"\x1b[36m>\x1b[0m", type:"input", message:"file:"});
             var data = readJsonFile(res.file)
             if (data) {
-                username = data?.username ? data.username : username
-                user_rgb = data?.rgb ? data.rgb : user_rgb
-                privateKey = data?.privateKey ? data.privateKey : privateKey
-                privateKey = data?.publicKey ? data.publicKey : publicKey
+                username = data?.username || username
+                user_rgb = data?.rgb || user_rgb
+                privateKey = data?.privateKey || privateKey
+                privateKey = data?.publicKey || publicKey
             }
             await settings();
             return;
